@@ -35,6 +35,8 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource BodyTextBlockStyle}" Text="Enter some text below and click Save to insert a new TodoItem item into your database" TextWrapping="Wrap"/>
             <TextBox Grid.Row="1" Grid.Column="0" Name="TextInput" Text="" />
+            <Button Grid.Row ="1" Grid.Column="1" Name="ButtonLogin" Click="ButtonLogin_Click" 
+    Margin="10, 0, 0, 0" Visibility="Visible">Sign in</Button>
             <Button Grid.Row ="1" Grid.Column="1" Name="ButtonSave" Click="ButtonSave_Click" IsEnabled="False" Margin="10, 0, 0, 0">Save</Button>
             <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource BodyTextBlockStyle}" Text="Click refresh below to load the unfinished TodoItems from your database. Use the checkbox to complete and update your TodoItems" TextWrapping="Wrap"/>
             <Button Grid.Row="3" Grid.ColumnSpan="2" Name="ButtonRefresh" Click="ButtonRefresh_Click" HorizontalAlignment="Stretch">Refresh</Button>

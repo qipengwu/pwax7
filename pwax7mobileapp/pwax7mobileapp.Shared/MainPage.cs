@@ -8,6 +8,9 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
+using System.Linq;
+using Windows.Security.Credentials;
+
 // To add offline sync support, add the NuGet package Microsoft.WindowsAzure.MobileServices.SQLiteStore
 // to your project. Then, uncomment the lines marked // offline sync
 // For more information, see: http://aka.ms/addofflinesync
@@ -20,6 +23,7 @@ namespace pwax7mobileapp
     {
         private MobileServiceCollection<TodoItem, TodoItem> items;
         private IMobileServiceTable<TodoItem> todoTable = App.MobileService.GetTable<TodoItem>();
+        private MobileServiceUser user;
         //private IMobileServiceSyncTable<TodoItem> todoTable = App.MobileService.GetSyncTable<TodoItem>(); // offline sync
 
         public MainPage()
@@ -101,7 +105,86 @@ namespace pwax7mobileapp
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             //await InitLocalStoreAsync(); // offline sync
-            await RefreshTodoItems();
+            //await RefreshTodoItems();
+        }
+
+        private async void ButtonLogin_Click(object sender, RoutedEventArgs e)
+        {
+            // Login the user and then load data from the mobile app.
+            if (await AuthenticateAsync())
+            {
+                // Hide the login button and load items from the mobile app.
+                ButtonLogin.Visibility = Windows.UI.Xaml.Visibility.Collapsed;
+                //await InitLocalStoreAsync(); //offline sync support.
+                await RefreshTodoItems();
+            }
+        }
+
+        // Define a method that performs the authentication process
+        // using a Facebook sign-in. 
+        private async System.Threading.Tasks.Task<bool> AuthenticateAsync()
+        {
+            string message;
+            bool success = false;
+
+            // Use the PasswordVault to securely store and access credentials.
+            PasswordVault vault = new PasswordVault();
+            PasswordCredential credential = null;
+            var provider = "WindowsAzureActiveDirectory";
+
+            try
+            {
+                // Try to get an existing credential from the vault.
+                credential = vault.FindAllByResource(provider).FirstOrDefault();
+            }
+            catch (Exception)
+            {
+                // When there is no matching resource an error occurs, which we ignore.
+            }
+
+            if (credential != null)
+            {
+                // Create a user from the stored credentials.
+                user = new MobileServiceUser(credential.UserName);
+                credential.RetrievePassword();
+                user.MobileServiceAuthenticationToken = credential.Password;
+
+                // Set the user from the stored credentials.
+                App.MobileService.CurrentUser = user;
+
+                // Consider adding a check to determine if the token is 
+                // expired, as shown in this post: http://aka.ms/jww5vp.
+
+                success = true;
+                message = string.Format("Cached credentials for user - {0}", user.UserId);
+            }
+            else
+            {
+                try
+                {
+                    // Login with the identity provider.
+                    user = await App.MobileService
+                        .LoginAsync(provider);
+
+                    // Create and store the user credentials.
+                    credential = new PasswordCredential(provider,
+                        user.UserId, user.MobileServiceAuthenticationToken);
+                    vault.Add(credential);
+
+                    success = true;
+                }
+                catch (MobileServiceInvalidOperationException)
+                {
+                    message = "You must log in. Login Required";
+                }
+            }
+            message = string.Format("You are now logged in - {0}", user.UserId);
+            var dialog = new MessageDialog(message);
+            dialog.Commands.Add(new UICommand("OK"));
+            await dialog.ShowAsync();
+
+            return success;
+
         }
 
         #region Offline sync
